@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalkulator Pintar dengan Suara</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #fff;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    .calculator {
+      width: 360px;
+      background: #f9f9f9;
+      border-radius: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+
+    .display {
+      background: #fff;
+      color: #000;
+      text-align: right;
+      padding: 20px;
+      font-size: 2em;
+      position: relative;
+      word-wrap: break-word;
+      border-bottom: 2px solid #eee;
+    }
+
+    .preview {
+      font-size: 1.2em;
+      color: #888;
+      margin-top: 5px;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 15px;
+    }
+
+    button {
+      padding: 20px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      color: #fff;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      position: relative;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    /* Warna tombol */
+    .num { background: #4cafef; }         
+    .op { background: #ff9800; }          
+    .equal { 
+      grid-row: span 2;
+      background: #e91e63;                
+      font-weight: bold;
+    }
+    .toggle-sci { background: #9c27b0; }  
+    .func { background: #4caf50; }        
+    .del { background: #f44336; }         
+    .voice { background: #3f51b5; }       
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <div class="display">
+      <div id="operation"></div>
+      <div class="preview" id="preview"></div>
+    </div>
+    <div class="buttons">
+      <button class="del" onclick="vibe();clearDisplay()">C</button>
+      <button class="del" onclick="vibe();delChar()">⌫</button>
+      <button class="op" onclick="vibe();append('%')">%</button>
+      <button class="op" onclick="vibe();append('÷')">÷</button>
+
+      <button class="num" onclick="vibe();append('7')">7</button>
+      <button class="num" onclick="vibe();append('8')">8</button>
+      <button class="num" onclick="vibe();append('9')">9</button>
+      <button class="op" onclick="vibe();append('×')">×</button>
+
+      <button class="num" onclick="vibe();append('4')">4</button>
+      <button class="num" onclick="vibe();append('5')">5</button>
+      <button class="num" onclick="vibe();append('6')">6</button>
+      <button class="op" onclick="vibe();append('-')">−</button>
+
+      <button class="num" onclick="vibe();append('1')">1</button>
+      <button class="num" onclick="vibe();append('2')">2</button>
+      <button class="num" onclick="vibe();append('3')">3</button>
+      <button class="op" onclick="vibe();append('+')">+</button>
+
+      <button class="toggle-sci" onclick="vibe();toggleSci()">☰</button>
+      <button class="num" onclick="vibe();append('0')">0</button>
+      <button class="num" onclick="vibe();append('.')">.</button>
+      <button class="equal" onclick="vibe();calculate()">=</button>
+
+      <!-- tombol suara -->
+      <button class="voice" style="grid-column: span 4;" onclick="startVoice()">🎤 Suara</button>
+    </div>
+
+    <div class="scientific" id="sci" style="display: none; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 10px 15px;">
+      <button class="func" onclick="vibe();append('Math.sqrt(')">√</button>
+      <button class="func" onclick="vibe();append('Math.pow(')">xʸ</button>
+      <button class="func" onclick="vibe();append('Math.sin(')">sin</button>
+      <button class="func" onclick="vibe();append('Math.cos(')">cos</button>
+      <button class="func" onclick="vibe();append('Math.tan(')">tan</button>
+      <button class="func" onclick="vibe();append('Math.log(')">ln</button>
+      <button class="func" onclick="vibe();append('Math.PI')">π</button>
+      <button class="func" onclick="vibe();append('Math.E')">e</button>
+    </div>
+  </div>
+
+  <script>
+    let operation = document.getElementById('operation');
+    let preview = document.getElementById('preview');
+    let sci = document.getElementById('sci');
+
+    function vibe() {
+      if (navigator.vibrate) {
+        navigator.vibrate(40);
+      }
+    }
+
+    function append(value) {
+      operation.innerText += value;
+      updatePreview();
+    }
+
+    function clearDisplay() {
+      operation.innerText = '';
+      preview.innerText = '';
+    }
+
+    function delChar() {
+      operation.innerText = operation.innerText.slice(0, -1);
+      updatePreview();
+    }
+
+    function calculate() {
+      try {
+        let exp = sanitize(operation.innerText);
+        let result = eval(exp);
+        operation.innerText = result;
+        preview.innerText = '';
+      } catch {
+        preview.innerText = "Error";
+      }
+    }
+
+    function updatePreview() {
+      try {
+        if (operation.innerText !== '') {
+          let exp = sanitize(operation.innerText);
+          let result = eval(exp);
+          if (result !== undefined) {
+            preview.innerText = "= " + result;
+          }
+        } else {
+          preview.innerText = '';
+        }
+      } catch {
+        preview.innerText = '';
+      }
+    }
+
+    function toggleSci() {
+      sci.style.display = sci.style.display === "grid" ? "none" : "grid";
+    }
+
+    function sanitize(input) {
+      return input
+        .replace(/÷/g, "/")
+        .replace(/×/g, "*")
+        .replace(/−/g, "-");
+    }
+
+    // --- Voice recognition ---
+    function startVoice() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert("Browser kamu tidak support Voice Recognition.");
+        return;
+      }
+      let recognition = new webkitSpeechRecognition();
+      recognition.lang = "id-ID"; // bahasa indonesia
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        let speech = event.results[0][0].transcript.toLowerCase();
+        let converted = speech
+          .replace(/kali/g, "×")
+          .replace(/bagi/g, "÷")
+          .replace(/dibagi/g, "÷")
+          .replace(/tambah/g, "+")
+          .replace(/kurang/g, "-")
+          .replace(/sama dengan/g, "=")
+          .replace(/nol/g, "0")
+          .replace(/satu/g, "1")
+          .replace(/dua/g, "2")
+          .replace(/tiga/g, "3")
+          .replace(/empat/g, "4")
+          .replace(/lima/g, "5")
+          .replace(/enam/g, "6")
+          .replace(/tujuh/g, "7")
+          .replace(/delapan/g, "8")
+          .replace(/sembilan/g, "9");
+
+        if (converted.includes("=")) {
+          operation.innerText = converted.replace("=", "");
+          calculate();
+        } else {
+          operation.innerText += converted;
+          updatePreview();
+        }
+      };
+
+      recognition.onerror = function() {
+        alert("Gagal mengenali suara, coba lagi.");
+      };
+    }
+  </script>
+</body>
+</html>
